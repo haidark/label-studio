@@ -14,6 +14,7 @@ import "./Import.scss";
 import { Button, CodeBlock, SimpleCard, Spinner, Tooltip } from "@humansignal/ui";
 import samples from "./samples.json";
 import { importFiles } from "./utils";
+import { CreateEmptyTasks } from "./CreateEmptyTasks";
 
 const importClass = cn("upload_page");
 const dropzoneClass = cn("dropzone");
@@ -207,18 +208,27 @@ export const ImportPage = ({
     [project?.id],
   );
 
-  const onError = (err) => {
-    console.error(err);
+  const onError = useCallback((error) => {
+    console.error(error);
     // @todo workaround for error about input size in a wrong html format
-    if (typeof err === "string" && err.includes("RequestDataTooBig")) {
+    if (typeof error === "string" && error.includes("RequestDataTooBig")) {
       const message = "Imported file is too big";
-      const extra = err.match(/"exception_value">(.*)<\/pre>/)?.[1];
+      const extra = error.match(/"exception_value">(.*)<\/pre>/)?.[1];
 
-      err = { message, extra };
+      error = { message, extra };
     }
-    setError(err);
+    setError(error);
     onWaiting?.(false);
-  };
+  }, [onWaiting]);
+
+  const onSuccess = useCallback((response) => {
+    // Show success message
+    console.log('Created empty tasks:', response);
+    // You could add a toast notification here if available
+    setError(null); // Clear any previous errors
+    onWaiting?.(false);
+  }, [onWaiting]);
+
   const onFinish = useCallback(
     async (res) => {
       const { could_be_tasks_list, data_columns, file_upload_ids } = res;
@@ -355,6 +365,12 @@ export const ImportPage = ({
         </Button>
         {ff.isActive(ff.FF_SAMPLE_DATASETS) && (
           <SampleDatasetSelect samples={samples} sample={sample} onSampleApplied={onSampleDatasetSelect} />
+        )}
+        <span>or</span>
+        {project && project.id ? (
+          <CreateEmptyTasks project={project} onError={onError} onSuccess={onSuccess} />
+        ) : (
+          <div>Loading project...</div>
         )}
         <div
           className={importClass.elem("csv-handling").mod({ highlighted: highlightCsvHandling, hidden: !csvHandling })}

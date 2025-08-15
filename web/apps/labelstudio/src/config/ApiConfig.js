@@ -36,6 +36,7 @@ export const API_CONFIG = {
     deleteFileUploads: "DELETE:/projects/:pk/file-uploads",
     importFiles: "POST:/projects/:pk/import",
     reimportFiles: "POST:/projects/:pk/reimport",
+    createEmptyTasks: "POST:/projects/:pk/create-empty-tasks",
     dataSummary: "/projects/:pk/summary",
 
     // DM

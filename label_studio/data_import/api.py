@@ -12,6 +12,9 @@ from core.permissions import ViewClassPermission, all_permissions
 from core.redis import start_job_async_or_sync
 from core.utils.common import retry_database_locked, timeit
 from core.utils.params import bool_from_request, list_of_strings_from_request
+from core.utils.db import fast_first
+from core.utils.exceptions import InvalidUploadUrlError
+from core.utils.io import validate_upload_url
 from csp.decorators import csp
 from django.conf import settings
 from django.db import transaction
@@ -678,6 +681,133 @@ class ReImportAPI(ImportAPI):
     )
     def post(self, *args, **kwargs):
         return super(ReImportAPI, self).post(*args, **kwargs)
+
+
+@method_decorator(
+    name='post',
+    decorator=extend_schema(
+        tags=['Import'],
+        summary='Create empty tasks',
+        description="""
+            Create a specified number of empty tasks in a project.
+            This endpoint allows you to create tasks without importing data from files.
+        """,
+        parameters=[
+            OpenApiParameter(
+                name='id',
+                type=OpenApiTypes.INT,
+                location='path',
+                description='A unique integer value identifying this project.',
+            ),
+        ],
+        request={
+            'application/json': {
+                'type': 'object',
+                'properties': {
+                    'count': {
+                        'type': 'integer',
+                        'description': 'Number of empty tasks to create',
+                        'minimum': 1,
+                        'maximum': 10000,
+                    }
+                },
+                'required': ['count']
+            }
+        },
+        responses={
+            '201': OpenApiResponse(
+                description='Empty tasks created successfully',
+                response={
+                    'type': 'object',
+                    'properties': {
+                        'task_count': {
+                            'type': 'integer',
+                            'description': 'Number of tasks created'
+                        },
+                        'task_ids': {
+                            'type': 'array',
+                            'items': {'type': 'integer'},
+                            'description': 'List of created task IDs'
+                        }
+                    }
+                }
+            )
+        },
+        extensions={
+            'x-fern-sdk-group-name': 'projects',
+            'x-fern-sdk-method-name': 'create_empty_tasks',
+            'x-fern-audiences': ['public'],
+        },
+    ),
+)
+class CreateEmptyTasksAPI(generics.CreateAPIView):
+    """
+    Create empty tasks in a project
+    """
+    permission_required = all_permissions.projects_change
+    permission_classes = api_settings.DEFAULT_PERMISSION_CLASSES + [ProjectImportPermission]
+    parser_classes = (JSONParser,)
+    serializer_class = ImportApiSerializer
+    queryset = Task.objects.all()
+
+    def get_serializer_context(self):
+        project_id = self.kwargs.get('pk')
+        if project_id:
+            project = generics.get_object_or_404(Project.objects.for_user(self.request.user), pk=project_id)
+        else:
+            project = None
+        return {'project': project, 'user': self.request.user}
+
+    def create(self, request, *args, **kwargs):
+        # check project permissions
+        project = generics.get_object_or_404(Project.objects.for_user(self.request.user), pk=self.kwargs['pk'])
+        
+        # validate count parameter
+        count = request.data.get('count')
+        if not count or not isinstance(count, int) or count < 1 or count > 10000:
+            raise ValidationError('count must be an integer between 1 and 10000')
+        
+        # Create empty tasks
+        tasks = []
+        task_ids = []
+        
+        # Acquire a lock on the project to ensure atomicity when calculating inner_id
+        with transaction.atomic():
+            project = Project.objects.select_for_update().get(id=project.id)
+            
+            last_task = fast_first(Task.objects.filter(project=project).order_by('-inner_id'))
+            prev_inner_id = last_task.inner_id if last_task else 0
+            max_inner_id = (prev_inner_id + 1) if prev_inner_id else 1
+            
+            for i in range(count):
+                task = Task(
+                    project=project,
+                    data={},  # Empty data
+                    meta={},
+                    overlap=project.maximum_annotations,
+                    is_labeled=False,
+                    inner_id=max_inner_id + i,
+                    total_predictions=0,
+                    total_annotations=0,
+                    cancelled_annotations=0,
+                )
+                tasks.append(task)
+            
+            # Bulk create all tasks
+            Task.objects.bulk_create(tasks)
+            task_ids = [task.id for task in tasks]
+        
+        # Emit webhooks for task creation
+        emit_webhooks_for_instance(
+            request.user.active_organization, project, WebhookAction.TASKS_CREATED, tasks
+        )
+        
+        response = {
+            'task_count': count,
+            'task_ids': task_ids,
+        }
+        
+        return Response(response, status=status.HTTP_201_CREATED)
 
 
 @method_decorator(
