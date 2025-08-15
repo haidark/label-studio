@@ -7,6 +7,8 @@ import { useAtomValue } from "jotai";
 import Input from "libs/datamanager/src/components/Common/Input/Input";
 import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import { useAPI } from "../../../providers/ApiProvider";
+import { useFixedLocation } from "../../../providers/RoutesProvider";
+import { useRefresh } from "../../../utils/hooks";
 import { cn } from "../../../utils/bem";
 import { unique } from "../../../utils/helpers";
 import { sampleDatasetAtom } from "../utils/atoms";
@@ -138,20 +140,22 @@ const ErrorMessage = ({ error }) => {
 export const ImportPage = ({
   project,
   sample,
-  show = true,
-  onWaiting,
-  onFileListUpdate,
   onSampleDatasetSelect,
+  projectConfigured,
+  openLabelingConfig,
+  onWaiting,
   highlightCsvHandling,
-  dontCommitToProject = false,
+  addColumns,
   csvHandling,
   setCsvHandling,
-  addColumns,
-  openLabelingConfig,
+  onFileListUpdate,
+  dontCommitToProject,
+  show = true,
 }) => {
-  const [error, setError] = useState();
+  const location = useFixedLocation();
+  const refresh = useRefresh();
+  const [error, setError] = useState(null);
   const api = useAPI();
-  const projectConfigured = project?.label_config !== "<View></View>";
   const sampleConfig = useAtomValue(sampleDatasetAtom);
 
   const processFiles = (state, action) => {
@@ -227,7 +231,14 @@ export const ImportPage = ({
     // You could add a toast notification here if available
     setError(null); // Clear any previous errors
     onWaiting?.(false);
-  }, [onWaiting]);
+    
+    // Navigate back to Data Manager after successful creation
+    // This will close the import modal and return to the project's data view
+    const path = location.pathname.replace('/import', '');
+    const search = location.search;
+    const pathname = `${path}${search !== "?" ? search : ""}`;
+    refresh(pathname);
+  }, [onWaiting, location, refresh]);
 
   const onFinish = useCallback(
     async (res) => {
