@@ -1,0 +1,44 @@
+<View>
+  <!-- Header with conversation context -->
+  <Header value="Multiturn AI Conversation (5 Turns)" />
+  
+  <!-- Conversation context and instructions -->
+  <Text name="instructions" value="You are having a conversation with an AI assistant. Input your user messages for each turn. The AI responses are pre-generated and will appear automatically. Evaluate the quality of the conversation." />
+  
+  <!-- Turn 1 -->
+  <View style="border: 1px solid #ccc; padding: 10px; margin: 10px 0; border-radius: 5px;">
+    <Header value="Turn 1" size="4" />
+    <TextArea name="user_input_1" toName="ai_response_1_label" value="$user_input_1" placeholder="Type your user message for turn 1..." rows="2" maxlength="500" maxSubmissions="1"/>
+    <TextArea name="ai_response_1_label" toName="user_input_1" value="$ai_response_1_label" placeholder="AI response goes here..." rows="2" maxlength="500" editable="false" showSubmitButton="false"/>
+  </View>
+  
+  <!-- Turn 2 -->
+  <View style="border: 1px solid #ccc; padding: 10px; margin: 10px 0; border-radius: 5px;">
+    <Header value="Turn 2" size="4" />
+    <TextArea name="user_input_2" toName="ai_response_2_label" value="$user_input_2" placeholder="Type your user message for turn 2..." rows="2" maxlength="500" maxSubmissions="1"/>
+    <TextArea name="ai_response_2_label" toName="user_input_2" value="$ai_response_2_label" placeholder="AI response goes here..." rows="2" maxlength="500" editable="false" showSubmitButton="false"/>
+  </View>
+  
+  <!-- Turn 3 -->
+  <View style="border: 1px solid #ccc; padding: 10px; margin: 10px 0; border-radius: 5px;">
+    <Header value="Turn 3" size="4" />
+    <TextArea name="user_input_3" toName="ai_response_3_label" value="$user_input_3" placeholder="Type your user message for turn 3..." rows="2" maxlength="500" maxSubmissions="1"/>
+    <TextArea name="ai_response_3_label" toName="user_input_3" value="$ai_response_3_label" placeholder="AI response goes here..." rows="2" maxlength="500" editable="false" showSubmitButton="false"/>
+  </View>
+  
+  <!-- Turn 4 -->
+  <View style="border: 1px solid #ccc; padding: 10px; margin: 10px 0; border-radius: 5px;">
+    <Header value="Turn 4" size="4" />
+    <TextArea name="user_input_4" toName="ai_response_4_label" value="$user_input_4" placeholder="Type your user message for turn 4..." rows="2" maxlength="500" maxSubmissions="1"/>
+    <TextArea name="ai_response_4_label" toName="user_input_4" value="$ai_response_4_label" placeholder="AI response goes here..." rows="2" maxlength="500" editable="false" showSubmitButton="false"/>
+  </View>
+  
+  <!-- Turn 5 -->
+  <View style="border: 1px solid #ccc; padding: 10px; margin: 10px 0; border-radius: 5px;">
+    <Header value="Turn 5" size="4" />
+    <TextArea name="user_input_5" toName="ai_response_5_label" value="$user_input_5" placeholder="Type your user message for turn 5..." rows="2" maxlength="500" maxSubmissions="1"/>
+    <TextArea name="ai_response_5_label" toName="user_input_5" value="$ai_response_5_label" placeholder="AI response goes here..." rows="2" maxlength="500" editable="false" showSubmitButton="false"/>
+  </View>
+  
+
+</View>
